@@ -1,0 +1,26 @@
+# HELP gateway_requests_total Total number of gateway requests processed.
+# TYPE gateway_requests_total counter
+gateway_requests_total 400
+# HELP gateway_availability Ratio of successful requests.
+# TYPE gateway_availability gauge
+gateway_availability 0.9925
+# HELP gateway_error_rate Ratio of failed requests.
+# TYPE gateway_error_rate gauge
+gateway_error_rate 0.0075
+# HELP gateway_cache_hit_rate Ratio of requests served from cache.
+# TYPE gateway_cache_hit_rate gauge
+gateway_cache_hit_rate 0.5150
+# HELP gateway_latency_ms Latency percentiles in milliseconds.
+# TYPE gateway_latency_ms gauge
+gateway_latency_ms{quantile="0.50"} 1.44
+gateway_latency_ms{quantile="0.95"} 514.19
+gateway_latency_ms{quantile="0.99"} 539.29
+# HELP gateway_circuit_opens_total Total number of circuit breaker open transitions.
+# TYPE gateway_circuit_opens_total counter
+gateway_circuit_opens_total 7
+# HELP gateway_cache_false_hits_blocked_total Cache matches rejected by the false-hit guard.
+# TYPE gateway_cache_false_hits_blocked_total counter
+gateway_cache_false_hits_blocked_total 10
+# HELP gateway_cache_privacy_bypassed_total Requests the privacy guard kept out of cache.
+# TYPE gateway_cache_privacy_bypassed_total counter
+gateway_cache_privacy_bypassed_total 98

@@ -1,0 +1,110 @@
+{
+  "primary_timeout_100": {
+    "total_requests": 100,
+    "availability": 1.0,
+    "error_rate": 0.0,
+    "latency_p50_ms": 274.92,
+    "latency_p95_ms": 525.32,
+    "latency_p99_ms": 539.29,
+    "fallback_success_rate": 1.0,
+    "cache_hit_rate": 0.48,
+    "circuit_open_count": 5,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 1,
+    "privacy_bypassed": 28,
+    "estimated_cost": 0.017586,
+    "estimated_cost_saved": 0.016233,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "What is the tuition fee for the 2024 academic year?",
+        "cached_key": "What is the tuition fee for the 2025 academic year?"
+      }
+    ],
+    "status": "pass"
+  },
+  "primary_flaky_50": {
+    "total_requests": 100,
+    "availability": 0.98,
+    "error_rate": 0.02,
+    "latency_p50_ms": 1.15,
+    "latency_p95_ms": 504.47,
+    "latency_p99_ms": 529.82,
+    "fallback_success_rate": 0.9286,
+    "cache_hit_rate": 0.55,
+    "circuit_open_count": 2,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 6,
+    "privacy_bypassed": 21,
+    "estimated_cost": 0.018748,
+    "estimated_cost_saved": 0.02398,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "Summarize the refund policy for a student who missed the 2024 deadline.",
+        "cached_key": "Summarize the refund policy for a student who missed the 2026 deadline."
+      },
+      {
+        "query": "Summarize the refund policy for a student who missed the 2024 deadline.",
+        "cached_key": "Summarize the refund policy for a student who missed the 2026 deadline."
+      },
+      {
+        "query": "What is the tuition fee for the 2024 academic year?",
+        "cached_key": "What is the tuition fee for the 2025 academic year?"
+      }
+    ],
+    "status": "pass"
+  },
+  "all_healthy": {
+    "total_requests": 100,
+    "availability": 1.0,
+    "error_rate": 0.0,
+    "latency_p50_ms": 1.2,
+    "latency_p95_ms": 231.66,
+    "latency_p99_ms": 239.42,
+    "fallback_success_rate": 0.0,
+    "cache_hit_rate": 0.54,
+    "circuit_open_count": 0,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 2,
+    "privacy_bypassed": 22,
+    "estimated_cost": 0.02886,
+    "estimated_cost_saved": 0.033879,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "Summarize the refund policy for a student who missed the 2026 deadline.",
+        "cached_key": "Summarize the refund policy for a student who missed the 2024 deadline."
+      },
+      {
+        "query": "What is the tuition fee for the 2024 academic year?",
+        "cached_key": "What is the tuition fee for the 2025 academic year?"
+      }
+    ],
+    "status": "pass"
+  },
+  "cache_stress_repeat": {
+    "total_requests": 100,
+    "availability": 0.99,
+    "error_rate": 0.01,
+    "latency_p50_ms": 182.65,
+    "latency_p95_ms": 511.91,
+    "latency_p99_ms": 543.52,
+    "fallback_success_rate": 0.9231,
+    "cache_hit_rate": 0.49,
+    "circuit_open_count": 0,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 1,
+    "privacy_bypassed": 27,
+    "estimated_cost": 0.026008,
+    "estimated_cost_saved": 0.025488,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "What is the tuition fee for the 2024 academic year?",
+        "cached_key": "What is the tuition fee for the 2025 academic year?"
+      }
+    ],
+    "status": "pass"
+  }
+}

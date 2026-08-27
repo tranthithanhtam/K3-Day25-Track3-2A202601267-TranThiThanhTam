@@ -1,0 +1,24 @@
+=== Circuit breaker recovery evidence ===
+failure_threshold=3  reset_timeout_seconds=0.2
+
+Step 1 - primary is down (fail_rate=1.0), send 4 requests
+  req 0: route=fallback   provider=backup primary_circuit=closed
+  req 1: route=fallback   provider=backup primary_circuit=closed
+  req 2: route=fallback   provider=backup primary_circuit=open
+  req 3: route=fallback   provider=backup primary_circuit=open
+  -> primary circuit is now OPEN; users are still served by the backup
+
+Step 2 - primary is healed (fail_rate=0.0), wait out the reset timeout
+  slept 0.25s
+
+Step 3 - next request is allowed through as a HALF_OPEN probe
+  route=primary  provider=primary  primary_circuit=closed
+  -> primary circuit is back to CLOSED
+
+Full transition log for the primary circuit:
+     closed -> open      reason=failure_threshold_reached  ts=1787851422.738
+       open -> half_open reason=reset_timeout_elapsed  ts=1787851423.070
+  half_open -> closed    reason=probe_success  ts=1787851423.120
+
+Measured recovery time: 381.3 ms
+(reset_timeout is 200 ms, so anything a little above that is the expected result)

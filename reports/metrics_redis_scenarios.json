@@ -1,0 +1,92 @@
+{
+  "primary_timeout_100": {
+    "total_requests": 100,
+    "availability": 0.95,
+    "error_rate": 0.05,
+    "latency_p50_ms": 280.64,
+    "latency_p95_ms": 546.44,
+    "latency_p99_ms": 557.28,
+    "fallback_success_rate": 0.9038,
+    "cache_hit_rate": 0.48,
+    "circuit_open_count": 5,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 0,
+    "privacy_bypassed": 29,
+    "estimated_cost": 0.016398,
+    "estimated_cost_saved": 0.016747,
+    "scenarios": {},
+    "false_hit_examples": [],
+    "status": "pass"
+  },
+  "primary_flaky_50": {
+    "total_requests": 100,
+    "availability": 1.0,
+    "error_rate": 0.0,
+    "latency_p50_ms": 17.66,
+    "latency_p95_ms": 527.27,
+    "latency_p99_ms": 564.92,
+    "fallback_success_rate": 1.0,
+    "cache_hit_rate": 0.59,
+    "circuit_open_count": 1,
+    "recovery_time_ms": 440.03,
+    "false_hits_blocked": 0,
+    "privacy_bypassed": 17,
+    "estimated_cost": 0.019828,
+    "estimated_cost_saved": 0.028533,
+    "scenarios": {},
+    "false_hit_examples": [],
+    "status": "pass"
+  },
+  "all_healthy": {
+    "total_requests": 100,
+    "availability": 1.0,
+    "error_rate": 0.0,
+    "latency_p50_ms": 9.72,
+    "latency_p95_ms": 240.78,
+    "latency_p99_ms": 258.82,
+    "fallback_success_rate": 0.0,
+    "cache_hit_rate": 0.55,
+    "circuit_open_count": 0,
+    "recovery_time_ms": null,
+    "false_hits_blocked": 2,
+    "privacy_bypassed": 24,
+    "estimated_cost": 0.02698,
+    "estimated_cost_saved": 0.032976,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "Summarize the refund policy for a student who missed the 2024 deadline.",
+        "cached_key": "Summarize the refund policy for a student who missed the 2026 deadline."
+      },
+      {
+        "query": "What is the tuition fee for the 2024 academic year?",
+        "cached_key": "What is the tuition fee for the 2025 academic year?"
+      }
+    ],
+    "status": "pass"
+  },
+  "cache_stress_repeat": {
+    "total_requests": 100,
+    "availability": 1.0,
+    "error_rate": 0.0,
+    "latency_p50_ms": 14.88,
+    "latency_p95_ms": 517.59,
+    "latency_p99_ms": 565.9,
+    "fallback_success_rate": 1.0,
+    "cache_hit_rate": 0.53,
+    "circuit_open_count": 1,
+    "recovery_time_ms": 452.78,
+    "false_hits_blocked": 1,
+    "privacy_bypassed": 26,
+    "estimated_cost": 0.025538,
+    "estimated_cost_saved": 0.028798,
+    "scenarios": {},
+    "false_hit_examples": [
+      {
+        "query": "Summarize the refund policy for a student who missed the 2024 deadline.",
+        "cached_key": "Summarize the refund policy for a student who missed the 2026 deadline."
+      }
+    ],
+    "status": "pass"
+  }
+}

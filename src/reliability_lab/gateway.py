@@ -35,31 +35,25 @@ class ReliabilityGateway:
         self.cumulative_cost: float = 0.0
 
     def complete(self, prompt: str) -> GatewayResponse:
-        """Return a reliable response or a static fallback.
+        """Return a reliable response, degrading gracefully instead of failing.
 
-        TODO(student): Implement the full request routing pipeline:
+        The request walks one pipeline, and every exit is labelled so the route
+        reason is visible in the metrics:
 
-        1. CACHE CHECK — if self.cache is not None:
-           - Call self.cache.get(prompt) → (cached_text, score)
-           - If cached_text is not None, return GatewayResponse with:
-             route=f"cache_hit:{score:.2f}", cache_hit=True, latency=0, cost=0
+        1. Cache — a hit returns immediately with ``route="cache_hit:<score>"``,
+           zero latency and zero cost. If the cache backend itself is down the
+           error is swallowed and the request continues to the providers, so a
+           dead Redis degrades the hit rate instead of the availability.
+        2. Provider chain — each provider is called through its own circuit
+           breaker. The first provider is ``route="primary"``, any later one is
+           ``route="fallback"``. A provider failure or an open circuit records the
+           error and moves to the next provider; an open circuit costs no network
+           call at all, which is what stops a retry storm.
+        3. Static fallback — every provider is unavailable, so a degraded message
+           is returned with ``route="static_fallback"`` and the last error attached.
 
-        2. PROVIDER FALLBACK CHAIN — iterate self.providers in order:
-           - Get the circuit breaker: self.breakers[provider.name]
-           - Try breaker.call(provider.complete, prompt)
-           - On success:
-             a. Store in cache: self.cache.set(prompt, response.text, {"provider": provider.name})
-             b. Determine route: "primary" if first provider, else "fallback"
-             c. Return GatewayResponse with provider info, latency, cost
-           - On ProviderError or CircuitOpenError: save error, continue to next provider
-
-        3. STATIC FALLBACK — if all providers fail:
-           - Return GatewayResponse with:
-             text="The service is temporarily degraded. Please try again soon."
-             route="static_fallback", error=last_error
-
-        BONUS TODO: Add cost budget tracking — if cumulative cost exceeds a threshold,
-        skip expensive providers and route to cache or cheaper fallback.
+        Cost-aware routing: once ``cost_budget`` is spent, the expensive primary is
+        skipped and traffic goes straight to the cheaper backup.
         """
         # 1. CACHE CHECK (with graceful degradation)
         if self.cache is not None:

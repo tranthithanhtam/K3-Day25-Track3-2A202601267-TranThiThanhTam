@@ -1,0 +1,33 @@
+$ docker compose exec redis redis-cli INFO server | grep redis_version
+redis_version:7.4.10
+
+$ docker compose exec redis redis-cli DBSIZE
+14
+
+$ docker compose exec redis redis-cli KEYS "rl:cache:*"
+rl:cache:4fc3c69b9376
+rl:cache:3dab98c0e49e
+rl:cache:98332d0d1c9c
+rl:cache:dacb2b833659
+rl:cache:fff10da1c72c
+rl:cache:844ef0143a5c
+rl:cache:0bc3b1acf73d
+rl:cache:9e413fd814eb
+rl:cache:da61fb49b4f6
+rl:cache:d354658dc020
+rl:cache:734852f3cf4a
+rl:cache:095946136fea
+rl:cache:3936614ac4c2
+rl:cache:b2a52f7dc795
+
+$ docker compose exec redis redis-cli TYPE rl:cache:4fc3c69b9376
+hash
+
+$ docker compose exec redis redis-cli HGETALL rl:cache:4fc3c69b9376
+response
+[primary] reliable answer for: Summarize the refund policy for a student who missed the 202
+query
+Summarize the refund policy for a student who missed the 2024 deadline.
+
+$ docker compose exec redis redis-cli TTL rl:cache:4fc3c69b9376
+288

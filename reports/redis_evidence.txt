@@ -1,0 +1,29 @@
+=== Redis shared cache evidence ===
+redis_url=redis://localhost:6379/0  prefix=rl:cache:
+redis_version=7.4.10
+
+Instance A and instance B are two separate Python objects,
+standing in for two gateway replicas behind a load balancer.
+
+Step 1 - instance A writes, instance B reads
+  A.set('Explain circuit breaker states in one paragraph.')
+  B.get(...) -> hit=True  score=1.00
+  value='[primary] circuit breakers have three states ...'
+
+Step 2 - instance B gets a semantic hit on a reworded question
+  B.get('Explain the circuit breaker states in one paragraph')
+  -> hit=True  score=0.95
+
+Step 3 - privacy guard: a sensitive query never reaches Redis
+  keys before=1  keys after=1  (unchanged means it was blocked)
+
+Step 4 - false-hit guard: different year must not reuse the cached answer
+  B.get('... 2025 academic year?') -> hit=False  score=0.96
+  false_hit_log=[{'query': 'What is the tuition fee for the 2025 academic year?', 'cached_key': 'What is the tuition fee for the 2024 academic year?', 'reason': 'date_or_number_mismatch'}]
+
+Step 5 - raw Redis contents (equivalent of: redis-cli KEYS "rl:cache:*")
+  rl:cache:095946136fea  ttl=300s  query='Explain circuit breaker states in one paragraph.'
+  rl:cache:0bc3b1acf73d  ttl=300s  query='What is the tuition fee for the 2024 academic year?'
+
+TTL is handled by Redis EXPIRE, so entries are evicted by the server
+and every replica sees the same expiry.

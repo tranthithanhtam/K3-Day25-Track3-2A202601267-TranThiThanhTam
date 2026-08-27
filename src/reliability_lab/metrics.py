@@ -18,6 +18,9 @@ class RunMetrics(BaseModel):
     cache_hits: int = 0
     circuit_open_count: int = 0
     recovery_time_ms: float | None = None
+    false_hits_blocked: int = 0
+    privacy_bypassed: int = 0
+    false_hit_examples: list[dict[str, str]] = Field(default_factory=list)
     estimated_cost: float = 0.0
     estimated_cost_saved: float = 0.0
     latencies_ms: list[float] = Field(default_factory=list)
@@ -54,7 +57,11 @@ class RunMetrics(BaseModel):
             "fallback_success_rate": round(self.fallback_success_rate, 4),
             "cache_hit_rate": round(self.cache_hit_rate, 4),
             "circuit_open_count": self.circuit_open_count,
-            "recovery_time_ms": self.recovery_time_ms,
+            "recovery_time_ms": (
+                round(self.recovery_time_ms, 2) if self.recovery_time_ms is not None else None
+            ),
+            "false_hits_blocked": self.false_hits_blocked,
+            "privacy_bypassed": self.privacy_bypassed,
             "estimated_cost": round(self.estimated_cost, 6),
             "estimated_cost_saved": round(self.estimated_cost_saved, 6),
             "scenarios": self.scenarios,
@@ -83,6 +90,12 @@ class RunMetrics(BaseModel):
             "# HELP gateway_circuit_opens_total Total number of circuit breaker open transitions.",
             "# TYPE gateway_circuit_opens_total counter",
             f"gateway_circuit_opens_total {self.circuit_open_count}",
+            "# HELP gateway_cache_false_hits_blocked_total Cache matches rejected by the false-hit guard.",
+            "# TYPE gateway_cache_false_hits_blocked_total counter",
+            f"gateway_cache_false_hits_blocked_total {self.false_hits_blocked}",
+            "# HELP gateway_cache_privacy_bypassed_total Requests the privacy guard kept out of cache.",
+            "# TYPE gateway_cache_privacy_bypassed_total counter",
+            f"gateway_cache_privacy_bypassed_total {self.privacy_bypassed}",
         ]
         return "\n".join(lines) + "\n"
 
@@ -91,13 +104,10 @@ class RunMetrics(BaseModel):
         Path(path).write_text(json.dumps(self.to_report_dict(), indent=2, ensure_ascii=False))
 
     def write_csv(self, path: str | Path) -> None:
-        """Export metrics to CSV format.
+        """Export the report dict as a single-row CSV.
 
-        TODO(student): Implement CSV export:
-        1. Get report dict via self.to_report_dict()
-        2. Flatten the "scenarios" dict: each scenario becomes "scenario_{name}" column
-        3. Write a single-row CSV with csv.DictWriter (import csv at top of file)
-        4. Create parent directories if needed
+        The nested ``scenarios`` mapping is flattened into one ``scenario_<name>``
+        column per scenario so the file stays a flat, spreadsheet-friendly row.
         """
         data = self.to_report_dict()
         scenarios = data.pop("scenarios", {})

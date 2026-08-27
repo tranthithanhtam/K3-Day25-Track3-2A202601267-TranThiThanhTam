@@ -44,11 +44,19 @@ class CacheEntry:
 
 
 class ResponseCache:
-    """Simple in-memory cache skeleton.
+    """In-memory semantic response cache with privacy and false-hit guardrails.
 
-    TODO(student): Add a better semantic similarity function and false-hit guardrails.
-    Use the module-level _is_uncacheable() and _looks_like_false_hit() helpers in your
-    get() and set() methods.  For production, replace with SharedRedisCache.
+    Lookup is by n-gram cosine similarity rather than exact key match, so a
+    reworded question can still be served from cache. Two guardrails keep that
+    from being dangerous:
+
+    - ``_is_uncacheable()`` — privacy-sensitive queries (balances, passwords,
+      SSNs, per-user IDs) are never stored and never served from cache.
+    - ``_looks_like_false_hit()`` — a match whose 4-digit numbers disagree with
+      the query (e.g. "2024 deadline" vs "2026 deadline") is rejected and
+      recorded in ``false_hit_log`` as evidence.
+
+    Use ``SharedRedisCache`` instead when more than one gateway instance runs.
     """
 
     def __init__(self, ttl_seconds: int, similarity_threshold: float, max_entries: int = 1000):
@@ -59,7 +67,13 @@ class ResponseCache:
         self.false_hit_log: list[dict[str, object]] = []
 
     def get(self, query: str) -> tuple[str | None, float]:
-        """Look up a cached response by semantic similarity."""
+        """Look up a cached response by semantic similarity.
+
+        Expired entries are dropped first, then every remaining entry is scored
+        and the best one wins. A hit must clear ``similarity_threshold`` *and* the
+        false-hit check. Returns ``(response, score)`` on a hit, ``(None, best_score)``
+        on a miss.
+        """
         if _is_uncacheable(query):
             return None, 0.0
 
@@ -94,7 +108,10 @@ class ResponseCache:
         return None, best_score
 
     def set(self, query: str, value: str, metadata: dict[str, str] | None = None) -> None:
-        """Store a response in cache with privacy and capacity bounds."""
+        """Store a response, unless the query is privacy-sensitive.
+
+        Oldest-first eviction keeps the cache bounded at ``max_entries``.
+        """
         if _is_uncacheable(query):
             return
         if len(self._entries) >= self.max_entries:
@@ -110,20 +127,17 @@ class ResponseCache:
 
     @staticmethod
     def similarity(a: str, b: str) -> float:
-        """Compute semantic similarity between two strings.
+        """Cosine similarity over word tokens plus character 3-grams.
 
-        TODO(student): Implement cosine similarity over character n-grams + word tokens.
-        The naive token-overlap (Jaccard) approach loses too much information.
+        Each string is tokenized into its lowercased words *and* the character
+        3-grams inside each word, e.g. "hello" -> ["hello", "hel", "ell", "llo"].
+        The two token bags become ``Counter`` vectors and the score is
+        ``dot(a, b) / (|a| * |b|)``, so the result is in [0.0, 1.0].
 
-        Suggested approach:
-        1. If a == b, return 1.0
-        2. Tokenize both strings: split into words + character n-grams (n=3)
-           e.g., "hello world" → ["hello", "world", "hel", "ell", "llo", "wor", "orl", "rld"]
-        3. Build Counter (bag-of-words) vectors from these tokens
-        4. Compute cosine similarity: dot(a,b) / (|a| * |b|)
-
-        Hint: Use collections.Counter and math.sqrt.
-        Import them at the top of the file.
+        Character n-grams are used instead of plain Jaccard token overlap because
+        Jaccard is all-or-nothing per word: it cannot tell that "breaker pattern"
+        and "breaker design" share most of their content, and it ignores how many
+        times a token appears. Returns 1.0 for identical strings.
         """
         if a == b:
             return 1.0
@@ -167,18 +181,19 @@ class ResponseCache:
 class SharedRedisCache:
     """Redis-backed shared cache for multi-instance deployments.
 
-    TODO(student): Implement the get() and set() methods using Redis commands
-    so that cache state is shared across multiple gateway instances.
+    An in-memory cache lives inside one process, so N gateway replicas keep N
+    separate caches and the hit rate drops by roughly a factor of N. Storing the
+    entries in Redis means every replica reads and writes the same state.
 
-    Data model (suggested):
+    Data model:
         Key    = "{prefix}{query_hash}"   (Redis String namespace)
         Value  = Redis Hash with fields:  "query", "response"
         TTL    = Redis EXPIRE (automatic cleanup — no manual eviction)
 
-    For similarity lookup: SCAN all keys with self.prefix, HGET each entry's
-    "query" field, compute similarity locally via ResponseCache.similarity().
+    Similarity lookup: SCAN all keys under self.prefix, HGET each entry's
+    "query" field, and score it locally with ResponseCache.similarity().
 
-    Provided helpers:
+    Helpers:
         _is_uncacheable(query)          — True if privacy-sensitive
         _looks_like_false_hit(q, key)   — True if 4-digit numbers differ
         self._query_hash(query)         — deterministic short hash for Redis key
@@ -208,18 +223,16 @@ class SharedRedisCache:
             return False
 
     def get(self, query: str) -> tuple[str | None, float]:
-        """Look up a cached response from Redis.
+        """Look up a cached response in Redis.
 
-        TODO(student): Implement cache lookup.  Suggested steps:
-        1. Return (None, 0.0) if _is_uncacheable(query)
-        2. Build exact-match key: f"{self.prefix}{self._query_hash(query)}"
-        3. Try self._redis.hget(key, "response") — if found return (response, 1.0)
-        4. Otherwise self._redis.scan_iter(f"{self.prefix}*") to iterate all cached keys
-        5. For each key, HGET "query" field and compute
-           ResponseCache.similarity(query, cached_query)
-        6. Track best match that is >= self.similarity_threshold
-        7. Before returning a match, check _looks_like_false_hit(); if true,
-           append to self.false_hit_log and return (None, best_score)
+        Privacy-sensitive queries short-circuit to a miss. Otherwise the hashed
+        key is tried first (one HGET, score 1.0); on a miss the prefix is scanned
+        and each stored query is scored with ``ResponseCache.similarity``. The best
+        match at or above ``similarity_threshold`` is returned unless it fails the
+        false-hit check, in which case it is logged and reported as a miss.
+
+        Returns ``(response, score)`` on a hit and ``(None, best_score)`` on a miss,
+        so the caller can see how close the near-miss was.
         """
         if _is_uncacheable(query):
             return None, 0.0
@@ -262,13 +275,12 @@ class SharedRedisCache:
         return None, best_score
 
     def set(self, query: str, value: str, metadata: dict[str, str] | None = None) -> None:
-        """Store a response in Redis with TTL.
+        """Store a response in Redis under a TTL.
 
-        TODO(student): Implement cache storage.  Suggested steps:
-        1. Return immediately if _is_uncacheable(query)
-        2. Build key: f"{self.prefix}{self._query_hash(query)}"
-        3. self._redis.hset(key, mapping={"query": query, "response": value})
-        4. self._redis.expire(key, self.ttl_seconds)
+        Privacy-sensitive queries are dropped before they ever reach Redis. The
+        original query text is stored alongside the response because the
+        similarity scan needs it. Expiry is delegated to Redis EXPIRE, so stale
+        entries are evicted by the server and no manual sweep is needed.
         """
         if _is_uncacheable(query):
             return
